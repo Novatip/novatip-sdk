@@ -8,6 +8,7 @@ export default defineConfig({
   clean: true,
   splitting: false,
   treeshake: true,
+  dtsConfig: { compilerOptions: { skipLibCheck: true } },
   target: "es2020",
   outDir: "dist",
 });

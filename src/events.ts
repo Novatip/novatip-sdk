@@ -99,11 +99,11 @@ export function decodeTipEvent(
   }
 
   // topic[1] = jar_id (String ScVal)
-  const jarIdScVal = xdr.ScVal.fromXDR(raw.topic[1] as string, "base64");
+  const jarIdScVal = xdr.ScVal.fromXDR(raw.topic[1] as unknown as string, "base64");
   const jarId = scValToNative(jarIdScVal) as string;
 
   // data = Vec<ScVal> [ from: Address, amount: i128, message: String ]
-  const dataScVal = xdr.ScVal.fromXDR(raw.value as string, "base64");
+  const dataScVal = xdr.ScVal.fromXDR(raw.value as unknown as string, "base64");
   const dataVec = dataScVal.vec();
 
   if (!dataVec || dataVec.length < 3) {
