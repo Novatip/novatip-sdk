@@ -76,3 +76,4 @@ export type { FetchTipEventsOptions } from "./events.js";
 export { WalletError } from "./wallet.js";
 export type { WalletAdapter } from "./wallet.js";
 export { FreighterAdapter } from "./adapters/freighter.js";
+export { XBullAdapter } from "./adapters/xbull.js";
