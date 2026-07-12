@@ -72,6 +72,15 @@ export type { SignTransaction, InvokeOptions } from "./clients/tip-splitter.js";
 export { fetchTipEvents, decodeTipEvent } from "./events.js";
 export type { FetchTipEventsOptions } from "./events.js";
 
+// ── Utilities ────────────────────────────────────────────────────────────────
+export {
+  shortenAddress,
+  isTestnet,
+  formatLedger,
+  addressesEqual,
+  truncateMessage,
+} from "./utils.js";
+
 // ── Wallet adapters ───────────────────────────────────────────────────────────
 export { WalletError } from "./wallet.js";
 export type { WalletAdapter } from "./wallet.js";
