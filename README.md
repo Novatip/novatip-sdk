@@ -197,6 +197,56 @@ npm test           # jest
 
 ---
 
+## Wallet Adapters
+
+### Freighter
+
+```typescript
+import { FreighterAdapter } from "@novatip/sdk";
+
+const wallet = new FreighterAdapter();
+if (wallet.isAvailable()) {
+  const publicKey = await wallet.getPublicKey();
+}
+```
+
+### xBull
+
+```typescript
+import { XBullAdapter } from "@novatip/sdk";
+
+const wallet = new XBullAdapter();
+if (wallet.isAvailable()) {
+  const publicKey = await wallet.getPublicKey();
+}
+```
+
+Both adapters implement the `WalletAdapter` interface so they are
+interchangeable anywhere a `signTransaction` callback is required.
+
+## Utility Helpers
+
+```typescript
+import {
+  shortenAddress,
+  isTestnet,
+  formatLedger,
+  addressesEqual,
+  truncateMessage,
+} from "@novatip/sdk";
+
+shortenAddress("GABCDE...WXYZ")        // "GABCD...WXYZ"
+isTestnet("testnet")                   // true
+isTestnet("mainnet")                   // false
+formatLedger(1234567)                  // "1,234,567"
+addressesEqual("GABC...", "gabc...")   // true
+truncateMessage("Great show!", 5)      // "Great..."
+```
+
+## Changelog
+
+See [CHANGELOG.md](./CHANGELOG.md) for a full history of changes.
+
 ## License
 
 MIT
