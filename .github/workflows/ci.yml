@@ -1,0 +1,53 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  ci:
+    name: Lint · Typecheck · Build
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        # Matches the `engines.node` range in package.json.
+        node-version: [18, 20]
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Build
+        run: npm run build
+
+      # The exports map in package.json promises three artifacts. tsup can drop
+      # one without failing the build, which then breaks consumers at import
+      # time rather than here — so assert all three exist.
+      - name: Verify build outputs
+        run: |
+          for f in dist/index.js dist/index.cjs dist/index.d.ts; do
+            if [ ! -s "$f" ]; then
+              echo "::error::missing or empty build output: $f"
+              exit 1
+            fi
+            echo "ok: $f ($(wc -c < "$f") bytes)"
+          done

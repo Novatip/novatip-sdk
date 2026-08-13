@@ -10,11 +10,47 @@
  * This module fetches and decodes those events from the Soroban RPC.
  */
 
-import { SorobanRpc, scValToNative, xdr } from "@stellar/stellar-sdk";
+import { SorobanRpc, nativeToScVal, scValToNative, xdr } from "@stellar/stellar-sdk";
 import type { NetworkConfig } from "./network.js";
 import type { TipEvent } from "./types.js";
 import { createRpcServer } from "./transaction.js";
 import { NovatipSdkError } from "./errors.js";
+
+/**
+ * The event symbol `tip_splitter` publishes as topic[0] on every tip.
+ * Must stay in step with `symbol_short!("tip")` in the contract.
+ */
+export const TIP_EVENT_SYMBOL = "tip";
+
+/** Base64 XDR for an ScVal, as the RPC's topic filters expect. */
+function topicXdr(value: string, type: "symbol" | "string"): string {
+  return nativeToScVal(value, { type }).toXDR("base64");
+}
+
+/**
+ * Build the RPC topic filter for `tip` events.
+ *
+ * Two things here are easy to get wrong and both fail silently-ish:
+ *
+ * 1. The filter is computed, never hardcoded. A literal base64 constant cannot
+ *    be reviewed by reading it, and the one this replaced was malformed XDR —
+ *    the RPC rejected every request with "invalid parameters", so the indexer
+ *    never returned a single event.
+ *
+ * 2. A topic filter must have one segment per topic the event actually
+ *    publishes. `tip` publishes two — (symbol, jar_id) — so a one-segment
+ *    filter matches nothing at all rather than matching on the first segment.
+ *
+ * Passing `jarId` filters server-side. That matters for `limit`: filtering
+ * client-side means a busy contract can fill the page with other jars' events
+ * and return nothing for the one asked for.
+ */
+function tipTopicFilter(jarId?: string): string[] {
+  return [
+    topicXdr(TIP_EVENT_SYMBOL, "symbol"),
+    jarId === undefined ? "*" : topicXdr(jarId, "string"),
+  ];
+}
 
 /** Options for fetching tip events. */
 export interface FetchTipEventsOptions {
@@ -59,10 +95,7 @@ export async function fetchTipEvents(opts: FetchTipEventsOptions): Promise<TipEv
         {
           type: "contract",
           contractIds: [opts.contractId],
-          topics: [
-            // topic[0] = symbol "tip"
-            ["AAAADwAAAAN0aXAAAAA="],
-          ],
+          topics: [tipTopicFilter(opts.jarId)],
         },
       ],
       limit: opts.limit ?? 100,
