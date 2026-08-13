@@ -24,7 +24,15 @@ async function getFreighterApi(): Promise<FreighterApi> {
   try {
     // Use Function constructor to prevent TypeScript from resolving
     // the module at compile/dts time. The consuming app provides this dep.
-    const load = new Function("specifier", "return import(specifier)") as (s: string) => Promise<unknown>;
+    //
+    // @stellar/freighter-api is an optional peer dependency, so it may be
+    // absent when the SDK is built or when a Node consumer imports it. A
+    // literal dynamic import would make tsup's DTS step resolve it and fail
+    // the build. The specifier is a hardcoded constant, never user input.
+    // eslint-disable-next-line @typescript-eslint/no-implied-eval
+    const load = new Function("specifier", "return import(specifier)") as (
+      s: string,
+    ) => Promise<unknown>;
     const mod = await load("@stellar/freighter-api");
     _freighter = mod as FreighterApi;
     return _freighter;
@@ -51,8 +59,10 @@ export class FreighterAdapter implements WalletAdapter {
   isAvailable(): boolean {
     if (typeof globalThis === "undefined") return false;
     const g = globalThis as Record<string, unknown>;
-    return typeof g["window"] !== "undefined" &&
-      typeof (g["window"] as Record<string, unknown>)["freighter"] !== "undefined";
+    return (
+      typeof g["window"] !== "undefined" &&
+      typeof (g["window"] as Record<string, unknown>)["freighter"] !== "undefined"
+    );
   }
 
   async getPublicKey(): Promise<string> {
@@ -74,10 +84,7 @@ export class FreighterAdapter implements WalletAdapter {
         throw new WalletError("Freighter signing request failed.", this.name, e);
       });
     if (error ?? !signedTxXdr) {
-      throw new WalletError(
-        error ?? "Freighter returned an empty signed transaction.",
-        this.name,
-      );
+      throw new WalletError(error ?? "Freighter returned an empty signed transaction.", this.name);
     }
     return signedTxXdr;
   }

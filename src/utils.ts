@@ -17,11 +17,7 @@ import type { NetworkName } from "./network.js";
  * shortenAddress("GABCDEFGHIJ...WXYZ")        // "GABCD...WXYZ"
  * shortenAddress("GABCDEFGHIJ...WXYZ", 6, 6)  // "GABCDE...UVWXYZ"
  */
-export function shortenAddress(
-  address: string,
-  prefixLen = 5,
-  suffixLen = 4,
-): string {
+export function shortenAddress(address: string, prefixLen = 5, suffixLen = 4): string {
   if (address.length <= prefixLen + suffixLen) return address;
   return `${address.slice(0, prefixLen)}...${address.slice(-suffixLen)}`;
 }

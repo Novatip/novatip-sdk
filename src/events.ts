@@ -91,9 +91,7 @@ export async function fetchTipEvents(opts: FetchTipEventsOptions): Promise<TipEv
  * Decode a single raw Soroban RPC event into a typed TipEvent.
  * Throws if the event structure does not match the expected tip_splitter schema.
  */
-export function decodeTipEvent(
-  raw: SorobanRpc.Api.EventResponse,
-): TipEvent {
+export function decodeTipEvent(raw: SorobanRpc.Api.EventResponse): TipEvent {
   if (raw.topic.length < 2) {
     throw new NovatipSdkError("TipEvent: expected at least 2 topics.");
   }
