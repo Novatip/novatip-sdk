@@ -129,13 +129,15 @@ export function decodeTipEvent(raw: SorobanRpc.Api.EventResponse): TipEvent {
     throw new NovatipSdkError("TipEvent: expected at least 2 topics.");
   }
 
-  // topic[1] = jar_id (String ScVal)
-  const jarIdScVal = xdr.ScVal.fromXDR(raw.topic[1] as unknown as string, "base64");
-  const jarId = scValToNative(jarIdScVal) as string;
+  // `topic` and `value` arrive already parsed into xdr.ScVal by the Stellar SDK
+  // — they are not base64 strings. Calling ScVal.fromXDR on them throws, and
+  // because fetchTipEvents skips events that fail to decode, that turned every
+  // single event into a silent no-op: the indexer polled forever and never saw
+  // a tip. Coerce defensively so either shape works if the SDK ever changes.
+  const jarId = scValToNative(toScVal(raw.topic[1]!)) as string;
 
   // data = Vec<ScVal> [ from: Address, amount: i128, message: String ]
-  const dataScVal = xdr.ScVal.fromXDR(raw.value as unknown as string, "base64");
-  const dataVec = dataScVal.vec();
+  const dataVec = toScVal(raw.value).vec();
 
   if (!dataVec || dataVec.length < 3) {
     throw new NovatipSdkError("TipEvent: data vec has fewer than 3 elements.");
@@ -152,5 +154,11 @@ export function decodeTipEvent(raw: SorobanRpc.Api.EventResponse): TipEvent {
     message,
     ledger: raw.ledger,
     timestamp: raw.ledgerClosedAt,
+    txHash: raw.txHash,
   };
+}
+
+/** Accept an ScVal or its base64 XDR, and return an ScVal either way. */
+function toScVal(value: xdr.ScVal | string): xdr.ScVal {
+  return typeof value === "string" ? xdr.ScVal.fromXDR(value, "base64") : value;
 }
