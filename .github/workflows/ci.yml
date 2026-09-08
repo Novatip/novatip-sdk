@@ -8,20 +8,20 @@ on:
 
 jobs:
   ci:
-    name: Lint · Typecheck · Build
+    name: Node ${{ matrix.node-version }}
     runs-on: ubuntu-latest
 
     strategy:
       fail-fast: false
       matrix:
-        # Matches the `engines.node` range in package.json.
+        # matches the engines field in package.json (>=18)
         node-version: [18, 20]
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup Node.js
+      - name: Set up Node ${{ matrix.node-version }}
         uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node-version }}
@@ -39,15 +39,18 @@ jobs:
       - name: Build
         run: npm run build
 
-      # The exports map in package.json promises three artifacts. tsup can drop
-      # one without failing the build, which then breaks consumers at import
-      # time rather than here — so assert all three exist.
-      - name: Verify build outputs
+      - name: Test
+        run: npm test
+
+      # Assert that all three outputs referenced by the exports map in
+      # package.json were actually produced. A silently dropped output
+      # (e.g. tsup mis-configuration) is caught here before it ships.
+      - name: Assert dist outputs exist
         run: |
           for f in dist/index.js dist/index.cjs dist/index.d.ts; do
-            if [ ! -s "$f" ]; then
-              echo "::error::missing or empty build output: $f"
+            if [ ! -f "$f" ]; then
+              echo "ERROR: expected build output '$f' is missing" >&2
               exit 1
             fi
-            echo "ok: $f ($(wc -c < "$f") bytes)"
+            echo "OK: $f"
           done
