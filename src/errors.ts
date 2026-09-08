@@ -14,6 +14,8 @@ export enum ContractErrorCode {
   InvalidSplits = 4,
   InvalidAmount = 5,
   TooManyRecipients = 6,
+  DuplicateRecipient = 7,
+  MessageTooLong = 8,
 }
 
 /** Human-readable messages for each contract error code. */
@@ -25,6 +27,8 @@ export const CONTRACT_ERROR_MESSAGES: Record<ContractErrorCode, string> = {
     "Splits are invalid — they must be non-empty and sum to exactly 10,000 bps (100%).",
   [ContractErrorCode.InvalidAmount]: "Tip amount must be greater than zero.",
   [ContractErrorCode.TooManyRecipients]: "A jar cannot have more than 20 recipients.",
+  [ContractErrorCode.DuplicateRecipient]: "A collaborator cannot be added twice to the same jar.",
+  [ContractErrorCode.MessageTooLong]: "Tip message exceeds the 280-byte contract limit.",
 };
 
 /** SDK-level error wrapping a contract error code. */

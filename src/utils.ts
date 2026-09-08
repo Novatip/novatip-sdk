@@ -63,6 +63,14 @@ export function addressesEqual(a: string, b: string): boolean {
  * @example
  * truncateMessage("Great show tonight!", 10) // "Great show..."
  */
+/**
+ * Truncate a message to `maxLength` characters with an ellipsis.
+ *
+ * The default of 80 is a display-oriented choice for list views and previews;
+ * it is deliberately independent of the contract's 280-byte limit and the
+ * frontend's own validation. Callers that need contract-safe truncation should
+ * pass an explicit `maxLength` derived from the contract limit.
+ */
 export function truncateMessage(message: string, maxLength = 80): string {
   if (message.length <= maxLength) return message;
   return `${message.slice(0, maxLength)}...`;
