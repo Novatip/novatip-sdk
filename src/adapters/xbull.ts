@@ -55,10 +55,7 @@ export class XBullAdapter implements WalletAdapter {
   async getPublicKey(): Promise<string> {
     const provider = getXBullProvider();
     if (!provider) {
-      throw new WalletError(
-        "xBull wallet not found. Please install it from xbull.app",
-        this.name,
-      );
+      throw new WalletError("xBull wallet not found. Please install it from xbull.app", this.name);
     }
 
     try {
@@ -81,10 +78,7 @@ export class XBullAdapter implements WalletAdapter {
   async signTransaction(txXdr: string, networkPassphrase: string): Promise<string> {
     const provider = getXBullProvider();
     if (!provider) {
-      throw new WalletError(
-        "xBull wallet not found. Please install it from xbull.app",
-        this.name,
-      );
+      throw new WalletError("xBull wallet not found. Please install it from xbull.app", this.name);
     }
 
     try {

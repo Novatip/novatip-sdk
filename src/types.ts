@@ -41,6 +41,15 @@ export interface TipEvent {
   ledger: number;
   /** ISO-8601 timestamp of the ledger close. */
   timestamp: string;
+  /**
+   * Hash of the transaction that emitted the event.
+   *
+   * The real hash, straight from the RPC. Consumers deduplicating tips should
+   * key on this rather than synthesising an id from jarId/ledger/from — two
+   * tips from one sender to one jar in the same ledger collide under that
+   * scheme and the second is silently lost.
+   */
+  txHash: string;
 }
 
 /** Arguments required to send a tip via the contract client. */

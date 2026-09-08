@@ -14,22 +14,21 @@ export enum ContractErrorCode {
   InvalidSplits = 4,
   InvalidAmount = 5,
   TooManyRecipients = 6,
+  DuplicateRecipient = 7,
+  MessageTooLong = 8,
 }
 
 /** Human-readable messages for each contract error code. */
 export const CONTRACT_ERROR_MESSAGES: Record<ContractErrorCode, string> = {
-  [ContractErrorCode.NotInitialized]:
-    "Contract is not initialised — token address missing.",
-  [ContractErrorCode.JarExists]:
-    "A tip jar with this slug already exists.",
-  [ContractErrorCode.JarNotFound]:
-    "No tip jar found for this slug.",
+  [ContractErrorCode.NotInitialized]: "Contract is not initialised — token address missing.",
+  [ContractErrorCode.JarExists]: "A tip jar with this slug already exists.",
+  [ContractErrorCode.JarNotFound]: "No tip jar found for this slug.",
   [ContractErrorCode.InvalidSplits]:
     "Splits are invalid — they must be non-empty and sum to exactly 10,000 bps (100%).",
-  [ContractErrorCode.InvalidAmount]:
-    "Tip amount must be greater than zero.",
-  [ContractErrorCode.TooManyRecipients]:
-    "A jar cannot have more than 20 recipients.",
+  [ContractErrorCode.InvalidAmount]: "Tip amount must be greater than zero.",
+  [ContractErrorCode.TooManyRecipients]: "A jar cannot have more than 20 recipients.",
+  [ContractErrorCode.DuplicateRecipient]: "A collaborator cannot be added twice to the same jar.",
+  [ContractErrorCode.MessageTooLong]: "Tip message exceeds the 280-byte contract limit.",
 };
 
 /** SDK-level error wrapping a contract error code. */
@@ -45,7 +44,10 @@ export class NovatipContractError extends Error {
 
 /** SDK-level error for wallet or transaction issues (not contract errors). */
 export class NovatipSdkError extends Error {
-  constructor(message: string, public readonly cause?: unknown) {
+  constructor(
+    message: string,
+    public readonly cause?: unknown,
+  ) {
     super(message);
     this.name = "NovatipSdkError";
   }
@@ -60,8 +62,7 @@ export function parseContractError(raw: unknown): NovatipContractError | null {
 
   // Soroban SDK surfaces contract errors as objects with a `value` or `code` field.
   const maybeCode =
-    (raw as Record<string, unknown>)["code"] ??
-    (raw as Record<string, unknown>)["value"];
+    (raw as Record<string, unknown>)["code"] ?? (raw as Record<string, unknown>)["value"];
 
   const code = Number(maybeCode);
   if (Object.values(ContractErrorCode).includes(code as ContractErrorCode)) {

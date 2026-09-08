@@ -6,8 +6,6 @@
  */
 
 import {
-  Contract,
-  Networks,
   SorobanRpc,
   Transaction,
   TransactionBuilder,
@@ -40,10 +38,7 @@ export async function simulateAndAssemble(
   const simResult = await server.simulateTransaction(tx);
 
   if (SorobanRpc.Api.isSimulationError(simResult)) {
-    throw new NovatipSdkError(
-      `Simulation failed: ${simResult.error}`,
-      simResult,
-    );
+    throw new NovatipSdkError(`Simulation failed: ${simResult.error}`, simResult);
   }
 
   if (!SorobanRpc.Api.isSimulationSuccess(simResult)) {
@@ -86,23 +81,18 @@ export async function submitAndWait(
     const status = await server.getTransaction(hash);
 
     if (status.status === SorobanRpc.Api.GetTransactionStatus.SUCCESS) {
-      return status as SorobanRpc.Api.GetSuccessfulTransactionResponse;
+      return status;
     }
 
     if (status.status === SorobanRpc.Api.GetTransactionStatus.FAILED) {
-      throw new NovatipSdkError(
-        `Transaction failed on-chain: ${hash}`,
-        status,
-      );
+      throw new NovatipSdkError(`Transaction failed on-chain: ${hash}`, status);
     }
 
     // NOT_FOUND means still pending — wait and retry
     await sleep(1_500);
   }
 
-  throw new NovatipSdkError(
-    `Transaction confirmation timed out after 30s: ${hash}`,
-  );
+  throw new NovatipSdkError(`Transaction confirmation timed out after 30s: ${hash}`);
 }
 
 /**

@@ -9,6 +9,7 @@
 import {
   Contract,
   SorobanRpc,
+  Transaction,
   scValToNative,
   nativeToScVal,
   xdr,
@@ -65,9 +66,7 @@ export class TipSplitterClient {
    * Throws NovatipContractError(JarNotFound) if the slug is not registered.
    */
   async getJar(jarId: string): Promise<Jar> {
-    const tx = await this._buildReadTx("get_jar", [
-      nativeToScVal(jarId, { type: "string" }),
-    ]);
+    const tx = await this._buildReadTx("get_jar", [nativeToScVal(jarId, { type: "string" })]);
 
     const sim = await this.server.simulateTransaction(tx);
     if (SorobanRpc.Api.isSimulationError(sim)) {
@@ -132,7 +131,10 @@ export class TipSplitterClient {
   /**
    * Replace a jar's splits. Only the jar owner may call this.
    */
-  async updateSplits(params: UpdateSplitsParams, opts: InvokeOptions & { owner: string }): Promise<void> {
+  async updateSplits(
+    params: UpdateSplitsParams,
+    opts: InvokeOptions & { owner: string },
+  ): Promise<void> {
     const args = [
       nativeToScVal(params.jarId, { type: "string" }),
       this._encodeSplits(params.splits),
@@ -145,19 +147,18 @@ export class TipSplitterClient {
   // ---------------------------------------------------------------------------
 
   /** Build a read-only (no-auth) transaction for simulation. */
-  private async _buildReadTx(
-    method: string,
-    args: xdr.ScVal[],
-  ) {
+  private async _buildReadTx(method: string, args: xdr.ScVal[]): Promise<Transaction> {
     // Use a well-known testnet/mainnet account as a dummy source for read sims.
     const dummySource = "GAAZI4TCR3TY5OJHCTJC2A4QSY6CJWJH5IAJTGKIN2ER7LBNVKOCCWN";
-    const builder = await buildTransactionBuilder(dummySource, this.network, this.server).catch(() => {
-      throw new NovatipSdkError("Could not load source account for simulation. Check RPC connectivity.");
-    });
+    const builder = await buildTransactionBuilder(dummySource, this.network, this.server).catch(
+      () => {
+        throw new NovatipSdkError(
+          "Could not load source account for simulation. Check RPC connectivity.",
+        );
+      },
+    );
 
-    return builder
-      .addOperation(this.contract.call(method, ...args))
-      .build();
+    return builder.addOperation(this.contract.call(method, ...args)).build();
   }
 
   /** Simulate, sign, and submit a mutating contract call. */
@@ -167,9 +168,11 @@ export class TipSplitterClient {
     sourceAccountId: string,
     opts: InvokeOptions,
   ): Promise<void> {
-    const builder = await buildTransactionBuilder(sourceAccountId, this.network, this.server).catch((e) => {
-      throw new NovatipSdkError("Could not load source account.", e);
-    });
+    const builder = await buildTransactionBuilder(sourceAccountId, this.network, this.server).catch(
+      (e) => {
+        throw new NovatipSdkError("Could not load source account.", e);
+      },
+    );
 
     const rawTx = builder.addOperation(this.contract.call(method, ...args)).build();
     const { transaction } = await simulateAndAssemble(this.server, rawTx);
@@ -181,7 +184,16 @@ export class TipSplitterClient {
     const { TransactionBuilder } = await import("@stellar/stellar-sdk");
     const signedTx = TransactionBuilder.fromXDR(signedXdr, this.network.passphrase);
 
-    await submitAndWait(this.server, signedTx as any).catch((e) => {
+    // fromXDR widens to Transaction | FeeBumpTransaction. A wallet signing a
+    // contract invocation returns the former; a fee-bump here would mean the
+    // wallet wrapped the envelope, which submitAndWait cannot simulate.
+    if ("innerTransaction" in signedTx) {
+      throw new NovatipSdkError(
+        "Wallet returned a fee-bump transaction; expected a signed contract invocation.",
+      );
+    }
+
+    await submitAndWait(this.server, signedTx).catch((e) => {
       const typed = parseContractError(e);
       throw typed ?? e;
     });
@@ -207,7 +219,10 @@ export class TipSplitterClient {
 
   /** Decode a Jar ScVal returned from the contract. */
   private _decodeJar(scVal: xdr.ScVal): Jar {
-    const native = scValToNative(scVal) as { owner: string; splits: Array<{ to: string; bps: number }> };
+    const native = scValToNative(scVal) as {
+      owner: string;
+      splits: Array<{ to: string; bps: number }>;
+    };
     return {
       owner: native.owner,
       splits: native.splits.map((s) => ({ to: s.to, bps: s.bps })),
