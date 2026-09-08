@@ -69,7 +69,7 @@ export { TipSplitterClient } from "./clients/tip-splitter.js";
 export type { SignTransaction, InvokeOptions } from "./clients/tip-splitter.js";
 
 // ── Events ────────────────────────────────────────────────────────────────────
-export { fetchTipEvents, decodeTipEvent } from "./events.js";
+export { TIP_EVENT_SYMBOL, fetchTipEvents, decodeTipEvent } from "./events.js";
 export type { FetchTipEventsOptions } from "./events.js";
 
 // ── Utilities ────────────────────────────────────────────────────────────────
