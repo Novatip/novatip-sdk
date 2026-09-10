@@ -69,9 +69,7 @@ describe("networkFromEnv", () => {
   });
 
   it("throws when rpcUrl is undefined", () => {
-    expect(() => networkFromEnv({ ...validEnv, rpcUrl: undefined })).toThrow(
-      "rpcUrl is required",
-    );
+    expect(() => networkFromEnv({ ...validEnv, rpcUrl: undefined })).toThrow("rpcUrl is required");
   });
 
   it("throws when horizonUrl is undefined", () => {
@@ -98,21 +96,21 @@ describe("networkFromEnv", () => {
 // ---------------------------------------------------------------------------
 describe("isValidContractId", () => {
   it("accepts a valid contract ID", () => {
-    expect(
-      isValidContractId("CBIELTK6YBZJU5UP2WWQEUCYKLPU6AUNZ2BQ4WWFEIE3USCIHMXQDAMA"),
-    ).toBe(true);
+    expect(isValidContractId("CBIELTK6YBZJU5UP2WWQEUCYKLPU6AUNZ2BQ4WWFEIE3USCIHMXQDAMA")).toBe(
+      true,
+    );
   });
 
   it("accepts the mainnet USDC SAC", () => {
-    expect(
-      isValidContractId("CCW67TSZV3SSS2HXMBQ5JFGCKJNXKZM7UQUWUZPUTHXSTZLEO7SJMI75"),
-    ).toBe(true);
+    expect(isValidContractId("CCW67TSZV3SSS2HXMBQ5JFGCKJNXKZM7UQUWUZPUTHXSTZLEO7SJMI75")).toBe(
+      true,
+    );
   });
 
   it("rejects an account address (starts with G)", () => {
-    expect(
-      isValidContractId("GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWHF"),
-    ).toBe(false);
+    expect(isValidContractId("GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWHF")).toBe(
+      false,
+    );
   });
 
   it("rejects a string that is too short", () => {
@@ -129,15 +127,13 @@ describe("isValidContractId", () => {
 // ---------------------------------------------------------------------------
 describe("isValidAccountId", () => {
   it("accepts a valid account address", () => {
-    expect(
-      isValidAccountId("GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWHF"),
-    ).toBe(true);
+    expect(isValidAccountId("GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWHF")).toBe(true);
   });
 
   it("rejects a contract ID (starts with C)", () => {
-    expect(
-      isValidAccountId("CBIELTK6YBZJU5UP2WWQEUCYKLPU6AUNZ2BQ4WWFEIE3USCIHMXQDAMA"),
-    ).toBe(false);
+    expect(isValidAccountId("CBIELTK6YBZJU5UP2WWQEUCYKLPU6AUNZ2BQ4WWFEIE3USCIHMXQDAMA")).toBe(
+      false,
+    );
   });
 
   it("rejects a short string", () => {

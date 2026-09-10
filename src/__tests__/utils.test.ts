@@ -23,10 +23,10 @@ describe("shortenAddress", () => {
   });
 
   it("honours custom prefixLen and suffixLen", () => {
-    expect(shortenAddress(LONG, 6, 6)).toBe("GABCDE...UVWX" + "YZ"); // last 6 chars
-    // recompute: last 6 chars of LONG
-    const last6 = LONG.slice(-6);
-    expect(shortenAddress(LONG, 6, 6)).toBe(`${LONG.slice(0, 6)}...${last6}`);
+    // Literal rather than recomputed from LONG: deriving the expectation with
+    // the same slice expression the implementation uses would pass even if
+    // shortenAddress were wrong.
+    expect(shortenAddress(LONG, 6, 6)).toBe("GABCDE...STUVWX");
   });
 
   it("returns the address unchanged when shorter than or equal to prefixLen + suffixLen", () => {
