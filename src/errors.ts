@@ -6,7 +6,14 @@
  * raw Soroban error integers.
  */
 
-/** On-chain error codes from the tip_splitter contract (repr u32). */
+/**
+ * On-chain error codes from the tip_splitter contract (repr u32).
+ *
+ * Codes are appended and never renumbered, because this mapping and the
+ * frontend's messages are keyed on the numbers. `InvalidSplits` (4) is no
+ * longer raised by the contract — split validation reports 10, 11 or 12
+ * instead — but stays here so an older deployment still decodes.
+ */
 export enum ContractErrorCode {
   NotInitialized = 1,
   JarExists = 2,
@@ -16,6 +23,10 @@ export enum ContractErrorCode {
   TooManyRecipients = 6,
   DuplicateRecipient = 7,
   MessageTooLong = 8,
+  InvalidJarId = 9,
+  SplitsEmpty = 10,
+  SplitOutOfRange = 11,
+  SplitSumNot100Pct = 12,
 }
 
 /** Human-readable messages for each contract error code. */
@@ -25,10 +36,17 @@ export const CONTRACT_ERROR_MESSAGES: Record<ContractErrorCode, string> = {
   [ContractErrorCode.JarNotFound]: "No tip jar found for this slug.",
   [ContractErrorCode.InvalidSplits]:
     "Splits are invalid — they must be non-empty and sum to exactly 10,000 bps (100%).",
-  [ContractErrorCode.InvalidAmount]: "Tip amount must be greater than zero.",
+  [ContractErrorCode.InvalidAmount]:
+    "Tip amount must be greater than zero, and small enough to split without overflowing.",
   [ContractErrorCode.TooManyRecipients]: "A jar cannot have more than 20 recipients.",
   [ContractErrorCode.DuplicateRecipient]: "A collaborator cannot be added twice to the same jar.",
   [ContractErrorCode.MessageTooLong]: "Tip message exceeds the 280-byte contract limit.",
+  [ContractErrorCode.InvalidJarId]: "Jar id must be between 1 and 64 bytes.",
+  [ContractErrorCode.SplitsEmpty]: "Add at least one collaborator before saving.",
+  [ContractErrorCode.SplitOutOfRange]:
+    "Each collaborator's share must be above 0% and no more than 100%.",
+  [ContractErrorCode.SplitSumNot100Pct]:
+    "Collaborator shares must add up to exactly 100% (10,000 bps).",
 };
 
 /** SDK-level error wrapping a contract error code. */
