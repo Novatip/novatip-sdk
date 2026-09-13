@@ -14,16 +14,21 @@
  * it cannot regress into that again.
  */
 
-import { StrKey } from "@stellar/stellar-sdk";
+import { StrKey, scValToNative, xdr } from "@stellar/stellar-sdk";
 import { TipSplitterClient } from "../clients/tip-splitter.js";
 import { getNetwork } from "../network.js";
 
 const CONTRACT_ID = "CCKPD2MPAYQYCL7QJKUMJHTEJWNHSIP7BZYIZBRO3C4DM4VHZKL6VBRL";
 
 /** Reach the private builder without loosening its visibility in the source. */
-function buildReadTx(client: TipSplitterClient, method: string) {
+function buildReadTx(
+  client: TipSplitterClient,
+  method: string,
+): { toXDR: () => string; source: string } {
   return (
-    client as unknown as { _buildReadTx: (m: string, a: unknown[]) => { toXDR: () => string; source: string } }
+    client as unknown as {
+      _buildReadTx: (m: string, a: unknown[]) => { toXDR: () => string; source: string };
+    }
   )._buildReadTx(method, []);
 }
 
@@ -50,5 +55,53 @@ describe("TipSplitterClient read-only simulation", () => {
   it("targets the configured contract", () => {
     const xdrString = buildReadTx(client, "get_token").toXDR();
     expect(xdrString.length).toBeGreaterThan(0);
+  });
+});
+
+/** Reach the private splits encoder without loosening its visibility. */
+function encodeSplits(
+  client: TipSplitterClient,
+  splits: Array<{ to: string; bps: number }>,
+): xdr.ScVal {
+  return (client as unknown as { _encodeSplits: (s: unknown[]) => xdr.ScVal })._encodeSplits(
+    splits,
+  );
+}
+
+describe("TipSplitterClient splits encoding", () => {
+  const client = new TipSplitterClient({
+    contractId: CONTRACT_ID,
+    network: getNetwork("testnet"),
+  });
+
+  const SPLITS = [
+    { to: "GD7UXR3IX276M2M4XUE3TPNKTA7PJTERTEDEGWELQQYQBBHDL2NTREFR", bps: 7000 },
+    { to: "GDE6TLQE77OGAPXORP5G5YLRG4FQE2D7ZCD237LVLTAALXAOVV3YTPDS", bps: 3000 },
+  ];
+
+  /**
+   * Soroban rejects an unsorted ScMap outright with Error(Object, InvalidInput)
+   * — "ScMap was not sorted by key". The encoder emitted `to` before `bps`,
+   * which meant create_jar and update_splits could never succeed. Nothing
+   * caught it because those were the only two callers of the encoder and the
+   * app never invoked either.
+   */
+  it("emits each Split's map keys in sorted order", () => {
+    const vec = encodeSplits(client, SPLITS).vec();
+    expect(vec).not.toBeNull();
+
+    for (const entry of vec!) {
+      const keys = entry.map()!.map((e) => e.key().sym().toString());
+      expect(keys).toEqual([...keys].sort());
+      expect(keys).toEqual(["bps", "to"]);
+    }
+  });
+
+  it("round-trips back to the same addresses and shares", () => {
+    const decoded = scValToNative(encodeSplits(client, SPLITS)) as Array<{
+      to: string;
+      bps: number;
+    }>;
+    expect(decoded).toEqual(SPLITS);
   });
 });

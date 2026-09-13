@@ -220,21 +220,38 @@ export class TipSplitterClient {
     });
   }
 
-  /** Encode a Split[] to an ScVal Vec for the contract. */
+  /**
+   * Encode a Split[] to an ScVal Vec for the contract.
+   *
+   * Soroban requires every ScMap to arrive sorted by key, and rejects the
+   * whole transaction with `Error(Object, InvalidInput)` — "ScMap was not
+   * sorted by key for conversion to host object" — when it is not. The
+   * declaration order of the fields on the Rust struct has nothing to do with
+   * it: `bps` sorts before `to`, so that is the order the wire format needs.
+   *
+   * Sorted here rather than written out in the right order by hand, so that
+   * adding a field to Split cannot quietly reintroduce the bug.
+   */
   private _encodeSplits(splits: Split[]): xdr.ScVal {
     return xdr.ScVal.scvVec(
-      splits.map((s) =>
-        xdr.ScVal.scvMap([
-          new xdr.ScMapEntry({
-            key: nativeToScVal("to", { type: "symbol" }),
-            val: nativeToScVal(s.to, { type: "address" }),
-          }),
-          new xdr.ScMapEntry({
-            key: nativeToScVal("bps", { type: "symbol" }),
-            val: nativeToScVal(s.bps, { type: "u32" }),
-          }),
-        ]),
-      ),
+      splits.map((s) => {
+        const fields: Array<[string, xdr.ScVal]> = [
+          ["to", nativeToScVal(s.to, { type: "address" })],
+          ["bps", nativeToScVal(s.bps, { type: "u32" })],
+        ];
+
+        fields.sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0));
+
+        return xdr.ScVal.scvMap(
+          fields.map(
+            ([name, val]) =>
+              new xdr.ScMapEntry({
+                key: nativeToScVal(name, { type: "symbol" }),
+                val,
+              }),
+          ),
+        );
+      }),
     );
   }
 
