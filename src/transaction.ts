@@ -6,7 +6,7 @@
  */
 
 import {
-  SorobanRpc,
+  rpc,
   Transaction,
   TransactionBuilder,
   BASE_FEE,
@@ -32,20 +32,20 @@ export interface AssembledTx {
  * @param tx       - The raw transaction to simulate
  */
 export async function simulateAndAssemble(
-  server: SorobanRpc.Server,
+  server: rpc.Server,
   tx: Transaction,
 ): Promise<AssembledTx> {
   const simResult = await server.simulateTransaction(tx);
 
-  if (SorobanRpc.Api.isSimulationError(simResult)) {
+  if (rpc.Api.isSimulationError(simResult)) {
     throw new NovatipSdkError(`Simulation failed: ${simResult.error}`, simResult);
   }
 
-  if (!SorobanRpc.Api.isSimulationSuccess(simResult)) {
+  if (!rpc.Api.isSimulationSuccess(simResult)) {
     throw new NovatipSdkError("Simulation returned no result.", simResult);
   }
 
-  const assembled = SorobanRpc.assembleTransaction(tx, simResult).build();
+  const assembled = rpc.assembleTransaction(tx, simResult).build();
 
   return {
     transaction: assembled,
@@ -61,9 +61,9 @@ export async function simulateAndAssemble(
  * @param tx     - The signed transaction (XDR envelope)
  */
 export async function submitAndWait(
-  server: SorobanRpc.Server,
+  server: rpc.Server,
   tx: Transaction,
-): Promise<SorobanRpc.Api.GetSuccessfulTransactionResponse> {
+): Promise<rpc.Api.GetSuccessfulTransactionResponse> {
   const sendResult = await server.sendTransaction(tx);
 
   if (sendResult.status === "ERROR") {
@@ -80,11 +80,11 @@ export async function submitAndWait(
   while (Date.now() - startTime < timeoutMs) {
     const status = await server.getTransaction(hash);
 
-    if (status.status === SorobanRpc.Api.GetTransactionStatus.SUCCESS) {
+    if (status.status === rpc.Api.GetTransactionStatus.SUCCESS) {
       return status;
     }
 
-    if (status.status === SorobanRpc.Api.GetTransactionStatus.FAILED) {
+    if (status.status === rpc.Api.GetTransactionStatus.FAILED) {
       throw new NovatipSdkError(`Transaction failed on-chain: ${hash}`, status);
     }
 
@@ -106,7 +106,7 @@ export async function submitAndWait(
 export async function buildTransactionBuilder(
   sourceAccountId: string,
   network: NetworkConfig,
-  server: SorobanRpc.Server,
+  server: rpc.Server,
 ): Promise<TransactionBuilder> {
   const account = await server.getAccount(sourceAccountId);
 
@@ -119,8 +119,8 @@ export async function buildTransactionBuilder(
 /**
  * Create a Soroban RPC server instance from a NetworkConfig.
  */
-export function createRpcServer(network: NetworkConfig): SorobanRpc.Server {
-  return new SorobanRpc.Server(network.rpcUrl, { allowHttp: network.name === "local" });
+export function createRpcServer(network: NetworkConfig): rpc.Server {
+  return new rpc.Server(network.rpcUrl, { allowHttp: network.name === "local" });
 }
 
 /** Decode a Soroban return value XDR to a native JS value. */

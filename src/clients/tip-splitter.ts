@@ -8,7 +8,7 @@
 
 import {
   Contract,
-  SorobanRpc,
+  rpc,
   Transaction,
   scValToNative,
   nativeToScVal,
@@ -48,7 +48,7 @@ export interface InvokeOptions {
  */
 export class TipSplitterClient {
   private readonly contract: Contract;
-  private readonly server: SorobanRpc.Server;
+  private readonly server: rpc.Server;
   private readonly network: NetworkConfig;
 
   constructor(options: { contractId: string; network: NetworkConfig }) {
@@ -69,11 +69,11 @@ export class TipSplitterClient {
     const tx = await this._buildReadTx("get_jar", [nativeToScVal(jarId, { type: "string" })]);
 
     const sim = await this.server.simulateTransaction(tx);
-    if (SorobanRpc.Api.isSimulationError(sim)) {
+    if (rpc.Api.isSimulationError(sim)) {
       const typed = parseContractError(sim);
       throw typed ?? new NovatipSdkError(`get_jar simulation error: ${sim.error}`);
     }
-    if (!SorobanRpc.Api.isSimulationSuccess(sim) || !sim.result) {
+    if (!rpc.Api.isSimulationSuccess(sim) || !sim.result) {
       throw new NovatipSdkError("get_jar: simulation returned no result.");
     }
 
@@ -87,10 +87,10 @@ export class TipSplitterClient {
     const tx = await this._buildReadTx("get_token", []);
 
     const sim = await this.server.simulateTransaction(tx);
-    if (SorobanRpc.Api.isSimulationError(sim)) {
+    if (rpc.Api.isSimulationError(sim)) {
       throw new NovatipSdkError(`get_token simulation error: ${sim.error}`);
     }
-    if (!SorobanRpc.Api.isSimulationSuccess(sim) || !sim.result) {
+    if (!rpc.Api.isSimulationSuccess(sim) || !sim.result) {
       throw new NovatipSdkError("get_token: simulation returned no result.");
     }
 

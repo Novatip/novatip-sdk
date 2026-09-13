@@ -8,7 +8,7 @@
  */
 
 import { xdr, nativeToScVal, Address } from "@stellar/stellar-sdk";
-import type { SorobanRpc } from "@stellar/stellar-sdk";
+import type { rpc } from "@stellar/stellar-sdk";
 import { decodeTipEvent } from "../events.js";
 import { NovatipSdkError } from "../errors.js";
 
@@ -35,7 +35,7 @@ function buildRawEvent(opts: {
   ledgerClosedAt?: string;
   topicOverride?: string[];
   valueOverride?: string;
-}): SorobanRpc.Api.EventResponse {
+}): rpc.Api.EventResponse {
   const topic0 = nativeToScVal("tip", { type: "symbol" }).toXDR("base64");
   const topic1 = nativeToScVal(opts.jarId, { type: "string" }).toXDR("base64");
 
@@ -58,7 +58,7 @@ function buildRawEvent(opts: {
     topic: topics,
     value: opts.valueOverride ?? dataVec.toXDR("base64"),
     inSuccessfulContractCall: true,
-  } as unknown as SorobanRpc.Api.EventResponse;
+  } as unknown as rpc.Api.EventResponse;
 }
 
 // ---------------------------------------------------------------------------
