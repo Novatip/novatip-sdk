@@ -7,9 +7,13 @@
  */
 
 import {
+  Account,
+  BASE_FEE,
   Contract,
   rpc,
+  TimeoutInfinite,
   Transaction,
+  TransactionBuilder,
   scValToNative,
   nativeToScVal,
   xdr,
@@ -23,6 +27,12 @@ import {
   submitAndWait,
 } from "../transaction.js";
 import { NovatipSdkError, parseContractError } from "../errors.js";
+
+/**
+ * Placeholder source account for read-only simulations: the all-zero ed25519
+ * public key. Valid StrKey, guaranteed never to be a real funded account.
+ */
+const READ_SIM_SOURCE = "GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWHF";
 
 /** Signing callback — receives the transaction XDR and returns the signed XDR. */
 export type SignTransaction = (txXdr: string) => Promise<string>;
@@ -66,7 +76,7 @@ export class TipSplitterClient {
    * Throws NovatipContractError(JarNotFound) if the slug is not registered.
    */
   async getJar(jarId: string): Promise<Jar> {
-    const tx = await this._buildReadTx("get_jar", [nativeToScVal(jarId, { type: "string" })]);
+    const tx = this._buildReadTx("get_jar", [nativeToScVal(jarId, { type: "string" })]);
 
     const sim = await this.server.simulateTransaction(tx);
     if (rpc.Api.isSimulationError(sim)) {
@@ -84,7 +94,7 @@ export class TipSplitterClient {
    * Returns the USDC token contract address configured at deploy time.
    */
   async getToken(): Promise<string> {
-    const tx = await this._buildReadTx("get_token", []);
+    const tx = this._buildReadTx("get_token", []);
 
     const sim = await this.server.simulateTransaction(tx);
     if (rpc.Api.isSimulationError(sim)) {
@@ -146,19 +156,30 @@ export class TipSplitterClient {
   // Private helpers
   // ---------------------------------------------------------------------------
 
-  /** Build a read-only (no-auth) transaction for simulation. */
-  private async _buildReadTx(method: string, args: xdr.ScVal[]): Promise<Transaction> {
-    // Use a well-known testnet/mainnet account as a dummy source for read sims.
-    const dummySource = "GAAZI4TCR3TY5OJHCTJC2A4QSY6CJWJH5IAJTGKIN2ER7LBNVKOCCWN";
-    const builder = await buildTransactionBuilder(dummySource, this.network, this.server).catch(
-      () => {
-        throw new NovatipSdkError(
-          "Could not load source account for simulation. Check RPC connectivity.",
-        );
-      },
-    );
+  /**
+   * Build a read-only transaction for simulation.
+   *
+   * The source account here is a placeholder and nothing more. A read-only
+   * simulation is never signed and never submitted, so the account needs no
+   * balance, no sequence number and no existence on the network — the RPC
+   * only reads the invocation out of the envelope.
+   *
+   * So the transaction is assembled locally against sequence 0 rather than
+   * loaded over the network. Fetching it was both a needless round trip and a
+   * hard failure: the address this used to carry was 55 characters, one short
+   * of a valid Stellar public key, so `getAccount` rejected it and every read
+   * — `getJar`, `getToken` — threw "Could not load source account".
+   */
+  private _buildReadTx(method: string, args: xdr.ScVal[]): Transaction {
+    const source = new Account(READ_SIM_SOURCE, "0");
 
-    return builder.addOperation(this.contract.call(method, ...args)).build();
+    return new TransactionBuilder(source, {
+      fee: BASE_FEE,
+      networkPassphrase: this.network.passphrase,
+    })
+      .setTimeout(TimeoutInfinite)
+      .addOperation(this.contract.call(method, ...args))
+      .build();
   }
 
   /** Simulate, sign, and submit a mutating contract call. */
