@@ -23,8 +23,8 @@
   ],
   "sideEffects": false,
   "scripts": {
-    "build": "tsup",
-    "dev": "tsup --watch",
+    "build": "node init && tsup",
+    "dev": "node init && tsup --watch",
     "prepare": "npm run build",
     "lint": "eslint src --ext .ts",
     "lint:fix": "eslint src --ext .ts --fix",
@@ -35,7 +35,9 @@
     "prepublishOnly": "npm run typecheck && npm run test && npm run build"
   },
   "dependencies": {
-    "@stellar/stellar-sdk": "^14.2.0"
+    "@stellar/stellar-sdk": "^14.2.0",
+    "dotenv": "^8.2.0",
+    "node-fetch": "^3.3.2"
   },
   "peerDependencies": {
     "@stellar/freighter-api": ">=2.0.0"
