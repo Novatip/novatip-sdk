@@ -64,6 +64,8 @@ export interface FetchTipEventsOptions {
   jarId?: string;
   /** Maximum number of events to return. Defaults to 100. */
   limit?: number;
+  /** Called for each event that fails to decode. Such events are skipped either way. */
+  onDecodeError?: (error: unknown, raw: rpc.Api.EventResponse) => void;
 }
 
 /**
@@ -111,9 +113,9 @@ export async function fetchTipEvents(opts: FetchTipEventsOptions): Promise<TipEv
       const decoded = decodeTipEvent(raw);
       if (opts.jarId && decoded.jarId !== opts.jarId) continue;
       events.push(decoded);
-    } catch {
+    } catch (e) {
       // Skip malformed events — don't let one bad event break the whole batch
-      continue;
+      opts.onDecodeError?.(e, raw);
     }
   }
 
