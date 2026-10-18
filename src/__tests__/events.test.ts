@@ -7,10 +7,11 @@
  * serialisation path as a real Soroban RPC — no live network needed.
  */
 
-import { xdr, nativeToScVal, Address } from "@stellar/stellar-sdk";
-import type { rpc } from "@stellar/stellar-sdk";
-import { decodeTipEvent } from "../events.js";
+import { jest } from "@jest/globals";
+import { xdr, nativeToScVal, Address, rpc } from "@stellar/stellar-sdk";
+import { decodeTipEvent, fetchTipEvents } from "../events.js";
 import { NovatipSdkError } from "../errors.js";
+import { getNetwork } from "../network.js";
 
 // ---------------------------------------------------------------------------
 // Fixture helpers
@@ -171,5 +172,39 @@ describe("decodeTipEvent — failure paths", () => {
     });
 
     expect(() => decodeTipEvent(raw)).toThrow(NovatipSdkError);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// fetchTipEvents with undecodable events
+// ---------------------------------------------------------------------------
+describe("fetchTipEvents with undecodable events", () => {
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  it("reports every event that fails to decode instead of dropping it silently", async () => {
+    const bad = buildRawEvent({
+      jarId: "@alice",
+      from: TIPPER_ADDRESS,
+      amount: 1n,
+      message: "test",
+      topicOverride: [],
+    });
+    jest
+      .spyOn(rpc.Server.prototype, "getEvents")
+      .mockResolvedValue({ events: [bad, bad] } as unknown as rpc.Api.GetEventsResponse);
+
+    const failures: unknown[] = [];
+    const events = await fetchTipEvents({
+      contractId: "CCKPD2MPAYQYCL7QJKUMJHTEJWNHSIP7BZYIZBRO3C4DM4VHZKL6VBRL",
+      network: getNetwork("testnet"),
+      startLedger: 1,
+      onDecodeError: (error) => failures.push(error),
+    });
+
+    expect(events).toEqual([]);
+    expect(failures).toHaveLength(2);
+    expect(failures[0]).toBeInstanceOf(NovatipSdkError);
   });
 });
