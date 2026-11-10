@@ -112,6 +112,39 @@ for (const e of events) {
 }
 ```
 
+### 5. Point to a custom contract and network (self-deployed on testnet)
+
+When developing against your own contract deployment or a custom network endpoint, combine `networkFromEnv` with your deployed contract ID:
+
+```ts
+import { TipSplitterClient, networkFromEnv } from "@novatip/sdk";
+import type { NetworkName } from "@novatip/sdk";
+
+// 1. Configure the network from environment variables
+const network = networkFromEnv({
+  name: (process.env.NETWORK as NetworkName) || "testnet",
+  rpcUrl: process.env.RPC_URL ?? "https://soroban-testnet.stellar.org",
+  horizonUrl: process.env.HORIZON_URL ?? "https://horizon-testnet.stellar.org",
+  passphrase: process.env.NETWORK_PASSPHRASE ?? "Test SDF Network ; September 2015",
+  usdcContractId:
+    process.env.USDC_CONTRACT_ID ??
+    "CBIELTK6YBZJU5UP2WWQEUCYKLPU6AUNZ2BQ4WWFEIE3USCIHMXQDAMA",
+});
+
+// 2. Instantiate TipSplitterClient with your deployed contract ID and custom network
+const client = new TipSplitterClient({
+  contractId:
+    process.env.TIP_SPLITTER_CONTRACT_ID ??
+    "CCKPD2MPAYQYCL7QJKUMJHTEJWNHSIP7BZYIZBRO3C4DM4VHZKL6VBRL",
+  network,
+});
+
+// 3. Read a jar back from your self-deployed contract
+const jar = await client.getJar("@alice");
+console.log("Jar Owner:", jar.owner);
+console.log("Jar Splits:", jar.splits);
+```
+
 ---
 
 ## API Reference
@@ -183,6 +216,8 @@ NETWORK_PASSPHRASE=Test SDF Network ; September 2015
 USDC_CONTRACT_ID=CBIELTK6YBZJU5UP2WWQEUCYKLPU6AUNZ2BQ4WWFEIE3USCIHMXQDAMA
 TIP_SPLITTER_CONTRACT_ID=C...
 ```
+
+For a complete, worked code example reading back a jar with these variables, see [Point to a custom contract and network](#5-point-to-a-custom-contract-and-network-self-deployed-on-testnet).
 
 ---
 
